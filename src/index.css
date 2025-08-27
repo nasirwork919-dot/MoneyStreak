@@ -2,95 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* BigMoney Premium Design System - Ultra-premium dark UI with gold accents
+All colors MUST be HSL. Premium glass morphism effects and smooth animations.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
+    /* Core Brand Colors - Deep Navy & Gold */
+    --background: 213 74% 5%;  /* #0A0F1A - deep night navy */
+    --surface: 213 64% 9%;     /* #0F1626 - elevated panels */
+    --foreground: 218 100% 97%; /* #F5F7FA - primary text */
+    
+    /* Gold Accent System */
+    --primary: 45 69% 53%;     /* #D4AF37 - accent gold for CTAs */
+    --primary-foreground: 213 74% 5%;
+    --primary-glow: 45 50% 58%; /* #BFA76B - soft gold for borders */
+    
+    /* Glass Morphism Cards */
+    --card: 213 64% 9%;        /* #0F1626 - elevated surface */
+    --card-foreground: 218 100% 97%;
+    
+    /* Secondary Text & Accents */
+    --secondary: 213 64% 9%;
+    --secondary-foreground: 218 21% 70%; /* #A8B0C3 - secondary text */
+    
+    --muted: 213 38% 15%;
+    --muted-foreground: 218 21% 70%;
+    
+    --accent: 45 50% 58%;      /* Soft gold */
+    --accent-foreground: 213 74% 5%;
+    
+    /* Status Colors */
+    --success: 142 76% 36%;    /* #22C55E */
+    --warning: 32 95% 44%;     /* #F59E0B */
+    --destructive: 0 84% 60%;  /* #EF4444 */
     --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Interactive Elements */
+    --border: 45 50% 58% / 0.15; /* Soft gold with 15% opacity */
+    --input: 213 38% 15%;
+    --ring: 45 69% 53%;        /* Gold focus ring */
+    --popover: 213 64% 9%;
+    --popover-foreground: 218 100% 97%;
+    
+    /* Premium Design Tokens */
+    --radius: 1rem;            /* 16px base radius */
+    --radius-lg: 1.5rem;       /* 24px for premium cards */
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--background)), hsl(var(--surface)));
+    --gradient-gold: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-glass: linear-gradient(135deg, hsl(var(--surface) / 0.8), hsl(var(--card) / 0.9));
+    
+    /* Shadows */
+    --shadow-premium: 0 25px 50px -12px hsl(var(--primary) / 0.1);
+    --shadow-gold-glow: 0 0 40px hsl(var(--primary) / 0.3);
+    --shadow-glass: 0 8px 32px hsl(213 74% 5% / 0.3);
+    
+    /* Motion Tokens */
+    --transition-smooth: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Glass Effects */
+    --blur-glass: 12px;
+    --backdrop-glass: blur(var(--blur-glass)) saturate(180%);
+    
+    /* Sidebar (inherited from shadcn) */
+    --sidebar-background: 213 64% 9%;
+    --sidebar-foreground: 218 100% 97%;
+    --sidebar-primary: 45 69% 53%;
+    --sidebar-primary-foreground: 213 74% 5%;
+    --sidebar-accent: 213 38% 15%;
+    --sidebar-accent-foreground: 218 100% 97%;
+    --sidebar-border: 45 50% 58% / 0.15;
+    --sidebar-ring: 45 69% 53%;
   }
 }
 
@@ -100,6 +85,72 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+  
+  /* Premium Typography Classes */
+  .font-display {
+    font-family: 'Playfair Display', serif;
+    font-feature-settings: 'ss01', 'ss02', 'ss03';
+  }
+  
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+    font-feature-settings: 'cv05', 'cv08', 'cv11';
+  }
+  
+  .font-numeric {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Glass Morphism Effect */
+  .glass {
+    @apply backdrop-blur-xl bg-surface/80 border border-border;
+    backdrop-filter: var(--backdrop-glass);
+  }
+  
+  /* Premium Button Variants */
+  .btn-gold {
+    @apply bg-primary text-primary-foreground hover:shadow-[0_0_30px_hsl(var(--primary)/0.4)] transition-all duration-300;
+  }
+  
+  .btn-glass {
+    @apply glass hover:bg-surface/90 text-foreground border-accent/30 hover:border-accent/60;
+  }
+  
+  /* Hover Animations */
+  .hover-lift {
+    @apply transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-premium;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-gold-glow;
+  }
+  
+  /* Text Gradients */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+  
+  /* Premium Card */
+  .card-premium {
+    @apply glass rounded-[var(--radius-lg)] p-8 hover-lift;
+  }
+  
+  /* Countdown Digit Styling */
+  .countdown-digit {
+    @apply font-numeric text-5xl md:text-6xl font-bold text-gradient-gold;
+  }
+  
+  /* Section Spacing */
+  .section-padding {
+    @apply py-24 md:py-32 lg:py-40;
+  }
+  
+  /* Container Max Width */
+  .container-premium {
+    @apply max-w-[1220px] mx-auto px-6 md:px-8 lg:px-12;
   }
 }
