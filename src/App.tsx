@@ -18,6 +18,7 @@ import Terms from "./pages/Terms";
 import ResponsiblePlay from "./pages/ResponsiblePlay";
 import ReferralLanding from "./pages/ReferralLanding";
 import Confirmation from "./pages/Confirmation";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/responsible-play" element={<ResponsiblePlay />} />
           <Route path="/referral/:code" element={<ReferralLanding />} />
           <Route path="/confirmation" element={<Confirmation />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
