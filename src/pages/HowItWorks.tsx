@@ -20,7 +20,8 @@ import {
   ExternalLink,
   Calculator,
   Lock,
-  Award
+  Award,
+  Brain
 } from "lucide-react";
 
 const processSteps = [

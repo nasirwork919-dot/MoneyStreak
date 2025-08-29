@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PremiumButton } from "@/components/ui/premium-button";
 import { Link } from "react-router-dom";
-import { Heart, Shield, Users, Award, DollarSign, Calendar, ExternalLink, CheckCircle } from "lucide-react";
+import { Heart, Shield, Users, Award, DollarSign, Calendar, ExternalLink, CheckCircle, Trophy, Brain, X } from "lucide-react";
 
 const values = [
   {

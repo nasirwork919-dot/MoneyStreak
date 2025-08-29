@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PremiumButton } from "@/components/ui/premium-button";
 import { supabase } from "@/lib/supabase";
-import { Download, Play, Eye, Trophy, Calendar, Star, DollarSign, Users, CheckCircle, ExternalLink } from "lucide-react";
+import { Download, Play, Eye, Trophy, Calendar, Star, DollarSign, Users, CheckCircle, ExternalLink, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface Winner {

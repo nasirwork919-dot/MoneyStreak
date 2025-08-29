@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PremiumButton } from "@/components/ui/premium-button";
 import { supabase } from "@/lib/supabase";
-import { Shield, Lock, Award, Users, Ticket, Clock, Trophy, Star, Calendar, DollarSign } from "lucide-react";
+import { Shield, Lock, Award, Users, Ticket, Clock, Trophy, Star, Calendar, DollarSign, Heart, Eye } from "lucide-react";
 
 interface Winner {
   name: string;
