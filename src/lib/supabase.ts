@@ -83,6 +83,7 @@ export interface QuizAttempt {
   user_id: string
   questions_answered: number
   correct_answers: number
+  time_taken?: number
   passed: boolean
   ticket_awarded?: string
   created_at: string
