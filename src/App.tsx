@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+
 import Index from "./pages/Index";
 import Buy from "./pages/Buy";
 import Dashboard from "./pages/Dashboard";
@@ -49,7 +50,7 @@ const App = () => (
             <Route path="/referral/:code" element={<ReferralLanding />} />
             <Route path="/confirmation" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
