@@ -5,20 +5,27 @@ import { PremiumButton } from "@/components/ui/premium-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase, type Ticket, type User, type Referral, type Draw, type Revenue } from "@/lib/supabase";
 import { 
   DollarSign, 
   Ticket as TicketIcon, 
   Users, 
   TrendingUp, 
-  Calendar,
+  Calendar as CalendarIcon,
   Eye,
   Download,
   RefreshCw,
   Trophy,
-  Gift
+  Gift,
+  BarChart3,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Star
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
 interface DashboardStats {
   totalRevenue: number;
@@ -29,6 +36,19 @@ interface DashboardStats {
   ticket5Count: number;
   freeTickets: number;
   todayRevenue: number;
+  weeklyRevenue: number;
+  monthlyRevenue: number;
+  avgTicketValue: number;
+  conversionRate: number;
+}
+
+interface RevenueByDate {
+  date: string;
+  ticket_3_revenue: number;
+  ticket_5_revenue: number;
+  total_revenue: number;
+  ticket_3_count: number;
+  ticket_5_count: number;
 }
 
 export default function Admin() {
@@ -40,40 +60,60 @@ export default function Admin() {
     ticket3Count: 0,
     ticket5Count: 0,
     freeTickets: 0,
-    todayRevenue: 0
+    todayRevenue: 0,
+    weeklyRevenue: 0,
+    monthlyRevenue: 0,
+    avgTicketValue: 0,
+    conversionRate: 0
   });
   
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [draws, setDraws] = useState<Draw[]>([]);
-  const [revenueData, setRevenueData] = useState<Revenue[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenueByDate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState({ from: subDays(new Date(), 30), to: new Date() });
+  const [liveUpdates, setLiveUpdates] = useState(true);
 
   // Real-time subscriptions
   useEffect(() => {
+    if (!liveUpdates) return;
+
     const ticketsSubscription = supabase
-      .channel('tickets')
+      .channel('admin-tickets')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
         fetchTickets();
         fetchStats();
+        toast({
+          title: "Live Update",
+          description: "New ticket data received",
+        });
       })
       .subscribe();
 
     const usersSubscription = supabase
-      .channel('users')
+      .channel('admin-users')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         fetchUsers();
         fetchStats();
+        toast({
+          title: "Live Update", 
+          description: "New user registration",
+        });
       })
       .subscribe();
 
     const referralsSubscription = supabase
-      .channel('referrals')
+      .channel('admin-referrals')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referrals' }, () => {
         fetchReferrals();
         fetchStats();
+        toast({
+          title: "Live Update",
+          description: "New referral activity",
+        });
       })
       .subscribe();
 
@@ -82,7 +122,7 @@ export default function Admin() {
       supabase.removeChannel(usersSubscription);
       supabase.removeChannel(referralsSubscription);
     };
-  }, []);
+  }, [liveUpdates]);
 
   // Initial data fetch
   useEffect(() => {
@@ -104,10 +144,10 @@ export default function Admin() {
 
   const fetchStats = async () => {
     try {
-      // Get total revenue and ticket counts
+      // Get comprehensive ticket statistics
       const { data: ticketStats } = await supabase
         .from('tickets')
-        .select('ticket_type, amount');
+        .select('ticket_type, amount, created_at');
 
       if (ticketStats) {
         const totalRevenue = ticketStats.reduce((sum, ticket) => sum + ticket.amount, 0);
@@ -115,25 +155,36 @@ export default function Admin() {
         const ticket5Count = ticketStats.filter(t => t.ticket_type === 'paid_5').length;
         const freeTickets = ticketStats.filter(t => t.ticket_type.startsWith('free')).length;
 
-        // Get today's revenue
-        const today = new Date().toISOString().split('T')[0];
-        const { data: todayTickets } = await supabase
-          .from('tickets')
-          .select('amount')
-          .gte('created_at', today)
-          .lt('created_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+        // Calculate time-based revenue
+        const today = startOfDay(new Date());
+        const weekAgo = subDays(today, 7);
+        const monthAgo = subDays(today, 30);
 
-        const todayRevenue = todayTickets?.reduce((sum, ticket) => sum + ticket.amount, 0) || 0;
+        const todayRevenue = ticketStats
+          .filter(t => new Date(t.created_at) >= today)
+          .reduce((sum, ticket) => sum + ticket.amount, 0);
+
+        const weeklyRevenue = ticketStats
+          .filter(t => new Date(t.created_at) >= weekAgo)
+          .reduce((sum, ticket) => sum + ticket.amount, 0);
+
+        const monthlyRevenue = ticketStats
+          .filter(t => new Date(t.created_at) >= monthAgo)
+          .reduce((sum, ticket) => sum + ticket.amount, 0);
+
+        const avgTicketValue = totalRevenue / (ticket3Count + ticket5Count || 1);
 
         // Get user count
         const { count: userCount } = await supabase
           .from('users')
           .select('*', { count: 'exact', head: true });
 
-        // Get referral count
+        // Get referral count and conversion rate
         const { count: referralCount } = await supabase
           .from('referrals')
           .select('*', { count: 'exact', head: true });
+
+        const conversionRate = userCount ? (referralCount || 0) / userCount * 100 : 0;
 
         setStats({
           totalRevenue,
@@ -143,7 +194,11 @@ export default function Admin() {
           ticket3Count,
           ticket5Count,
           freeTickets,
-          todayRevenue
+          todayRevenue,
+          weeklyRevenue,
+          monthlyRevenue,
+          avgTicketValue,
+          conversionRate
         });
       }
     } catch (error) {
@@ -165,7 +220,7 @@ export default function Admin() {
           user:users(*)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (error) throw error;
       setTickets(data || []);
@@ -180,7 +235,7 @@ export default function Admin() {
         .from('users')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (error) throw error;
       setUsers(data || []);
@@ -199,7 +254,7 @@ export default function Admin() {
           referee:referee_id(full_name, email)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (error) throw error;
       setReferrals(data || []);
@@ -233,7 +288,7 @@ export default function Admin() {
         .from('daily_revenue')
         .select('*')
         .order('date', { ascending: false })
-        .limit(30);
+        .limit(60);
 
       if (error) throw error;
       setRevenueData(data || []);
@@ -251,7 +306,7 @@ export default function Admin() {
       if (error) throw error;
 
       const csv = convertToCSV(data);
-      downloadCSV(csv, `${table}_export_${new Date().toISOString().split('T')[0]}.csv`);
+      downloadCSV(csv, `${table}_export_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       
       toast({
         title: "Export Successful",
@@ -305,7 +360,8 @@ export default function Admin() {
       active: "default",
       completed: "secondary",
       pending: "outline",
-      won: "default"
+      won: "default",
+      expired: "destructive"
     };
     
     return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
@@ -316,7 +372,7 @@ export default function Admin() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-secondary-foreground">Loading admin dashboard...</p>
+          <p className="text-secondary-foreground">Loading comprehensive admin dashboard...</p>
         </div>
       </div>
     );
@@ -329,28 +385,43 @@ export default function Admin() {
       <main className="pt-24 pb-16">
         <div className="container-premium">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-display font-bold mb-2">Admin Dashboard</h1>
-              <p className="text-secondary-foreground">Real-time BigMoney analytics and management</p>
+              <h1 className="text-3xl font-display font-bold mb-2">BigMoney Admin Dashboard</h1>
+              <p className="text-secondary-foreground">
+                Real-time analytics, user management, and comprehensive sweepstakes oversight
+              </p>
             </div>
-            <div className="flex gap-3">
-              <PremiumButton variant="outline" onClick={fetchAllData}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+            <div className="flex items-center gap-3 mt-4 lg:mt-0">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${liveUpdates ? 'bg-success animate-pulse' : 'bg-secondary'}`}></div>
+                <span className="text-sm text-secondary-foreground">
+                  {liveUpdates ? 'Live Updates ON' : 'Live Updates OFF'}
+                </span>
+              </div>
+              <PremiumButton 
+                variant="outline" 
+                size="sm"
+                onClick={() => setLiveUpdates(!liveUpdates)}
+              >
+                {liveUpdates ? 'Disable' : 'Enable'} Live Updates
               </PremiumButton>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 glass rounded-lg border border-accent/30 focus:border-accent focus:outline-none"
+              <PremiumButton variant="outline" size="sm" onClick={fetchAllData}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh All
+              </PremiumButton>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="rounded-md border"
               />
             </div>
           </div>
 
-          {/* Stats Cards */}
+          {/* Enhanced Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="glass">
+            <Card className="glass hover-lift">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-primary" />
@@ -359,75 +430,154 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-gradient-gold">
                   ${stats.totalRevenue.toLocaleString()}
                 </div>
-                <p className="text-xs text-secondary-foreground">
-                  Today: ${stats.todayRevenue.toLocaleString()}
-                </p>
+                <div className="flex items-center space-x-4 text-xs text-secondary-foreground mt-2">
+                  <span>Today: ${stats.todayRevenue.toLocaleString()}</span>
+                  <span>Week: ${stats.weeklyRevenue.toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-accent mt-1">
+                  Avg ticket: ${stats.avgTicketValue.toFixed(2)}
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="glass">
+            <Card className="glass hover-lift">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
                 <TicketIcon className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalTickets.toLocaleString()}</div>
-                <p className="text-xs text-secondary-foreground">
-                  Paid: {stats.ticket3Count + stats.ticket5Count} | Free: {stats.freeTickets}
-                </p>
+                <div className="flex items-center space-x-4 text-xs text-secondary-foreground mt-2">
+                  <span>Paid: {(stats.ticket3Count + stats.ticket5Count).toLocaleString()}</span>
+                  <span>Free: {stats.freeTickets.toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-accent mt-1">
+                  {Math.round((stats.freeTickets / stats.totalTickets) * 100)}% free entries
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="glass">
+            <Card className="glass hover-lift">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                 <Users className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
-                <p className="text-xs text-secondary-foreground">
+                <div className="text-xs text-secondary-foreground mt-2">
                   Registered participants
-                </p>
+                </div>
+                <div className="text-xs text-accent mt-1">
+                  {Math.round(stats.conversionRate)}% referral rate
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="glass">
+            <Card className="glass hover-lift">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Referrals</CardTitle>
                 <Gift className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalReferrals.toLocaleString()}</div>
-                <p className="text-xs text-secondary-foreground">
+                <div className="text-xs text-secondary-foreground mt-2">
                   Total referral conversions
-                </p>
+                </div>
+                <div className="text-xs text-accent mt-1">
+                  ${(stats.totalReferrals * 5).toLocaleString()} free value
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Tabs */}
+          {/* Revenue Trend Chart */}
+          <div className="grid lg:grid-cols-3 gap-6 mb-8">
+            <Card className="glass lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5" />
+                  <span>Revenue Trends (Last 30 Days)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart3 className="w-12 h-12 text-secondary-foreground mx-auto mb-4" />
+                    <p className="text-secondary-foreground">Revenue chart visualization</p>
+                    <p className="text-sm text-accent">Integration with charting library needed</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle>Live Activity Feed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {tickets.slice(0, 8).map((ticket, index) => (
+                    <div key={ticket.id} className="flex items-center space-x-3 p-2 bg-surface/30 rounded">
+                      <div className={`w-2 h-2 rounded-full ${
+                        ticket.ticket_type.startsWith('free') ? 'bg-success' : 'bg-primary'
+                      }`}></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {getTicketTypeLabel(ticket.ticket_type)}
+                        </div>
+                        <div className="text-xs text-secondary-foreground">
+                          {format(new Date(ticket.created_at), 'MMM d, HH:mm')}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold">
+                        ${ticket.amount}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Detailed Tabs */}
           <Tabs defaultValue="tickets" className="space-y-6">
             <TabsList className="glass">
-              <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="referrals">Referrals</TabsTrigger>
+              <TabsTrigger value="tickets">Tickets ({stats.totalTickets})</TabsTrigger>
+              <TabsTrigger value="users">Users ({stats.totalUsers})</TabsTrigger>
+              <TabsTrigger value="referrals">Referrals ({stats.totalReferrals})</TabsTrigger>
               <TabsTrigger value="draws">Draws</TabsTrigger>
-              <TabsTrigger value="revenue">Revenue</TabsTrigger>
+              <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
             </TabsList>
 
             {/* Tickets Tab */}
             <TabsContent value="tickets">
               <Card className="glass">
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <CardTitle>Recent Tickets</CardTitle>
-                      <CardDescription>Latest ticket purchases and entries</CardDescription>
+                      <CardTitle>Ticket Management</CardTitle>
+                      <CardDescription>All ticket purchases and free entries with real-time updates</CardDescription>
                     </div>
-                    <PremiumButton variant="outline" onClick={() => exportData('tickets')}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </PremiumButton>
+                    <div className="flex items-center gap-3 mt-4 lg:mt-0">
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-primary/20 px-2 py-1 rounded text-center">
+                          <div className="font-bold">{stats.ticket3Count}</div>
+                          <div>$3 Tickets</div>
+                        </div>
+                        <div className="bg-success/20 px-2 py-1 rounded text-center">
+                          <div className="font-bold">{stats.ticket5Count}</div>
+                          <div>$5 Tickets</div>
+                        </div>
+                        <div className="bg-accent/20 px-2 py-1 rounded text-center">
+                          <div className="font-bold">{stats.freeTickets}</div>
+                          <div>Free</div>
+                        </div>
+                      </div>
+                      <PremiumButton variant="outline" size="sm" onClick={() => exportData('tickets')}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                      </PremiumButton>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -446,15 +596,25 @@ export default function Admin() {
                       </thead>
                       <tbody className="divide-y divide-accent/10">
                         {tickets.map((ticket) => (
-                          <tr key={ticket.id}>
+                          <tr key={ticket.id} className="hover:bg-surface/30">
                             <td className="py-3 text-sm font-mono">{ticket.entry_number}</td>
                             <td className="py-3 text-sm">{ticket.user?.full_name || 'Unknown'}</td>
-                            <td className="py-3 text-sm">{getTicketTypeLabel(ticket.ticket_type)}</td>
-                            <td className="py-3 text-sm font-semibold">${ticket.amount}</td>
+                            <td className="py-3">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                ticket.ticket_type.startsWith('free') 
+                                  ? 'bg-success/20 text-success' 
+                                  : 'bg-primary/20 text-primary'
+                              }`}>
+                                {getTicketTypeLabel(ticket.ticket_type)}
+                              </span>
+                            </td>
+                            <td className="py-3 text-sm font-semibold">
+                              {ticket.amount > 0 ? `$${ticket.amount}` : 'FREE'}
+                            </td>
                             <td className="py-3 text-sm">${ticket.draw_type}</td>
                             <td className="py-3">{getStatusBadge(ticket.status)}</td>
                             <td className="py-3 text-sm text-secondary-foreground">
-                              {new Date(ticket.created_at).toLocaleDateString()}
+                              {format(new Date(ticket.created_at), 'MMM d, yyyy HH:mm')}
                             </td>
                           </tr>
                         ))}
@@ -471,12 +631,12 @@ export default function Admin() {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle>Registered Users</CardTitle>
-                      <CardDescription>Platform user management</CardDescription>
+                      <CardTitle>User Management</CardTitle>
+                      <CardDescription>Registered users and their activity</CardDescription>
                     </div>
-                    <PremiumButton variant="outline" onClick={() => exportData('users')}>
+                    <PremiumButton variant="outline" size="sm" onClick={() => exportData('users')}>
                       <Download className="w-4 h-4 mr-2" />
-                      Export
+                      Export Users
                     </PremiumButton>
                   </div>
                 </CardHeader>
@@ -488,18 +648,20 @@ export default function Admin() {
                           <th className="text-left py-3 text-sm font-medium">Name</th>
                           <th className="text-left py-3 text-sm font-medium">Email</th>
                           <th className="text-left py-3 text-sm font-medium">Phone</th>
+                          <th className="text-left py-3 text-sm font-medium">Referral Code</th>
                           <th className="text-left py-3 text-sm font-medium">Joined</th>
                           <th className="text-left py-3 text-sm font-medium">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-accent/10">
                         {users.map((user) => (
-                          <tr key={user.id}>
+                          <tr key={user.id} className="hover:bg-surface/30">
                             <td className="py-3 text-sm font-medium">{user.full_name}</td>
                             <td className="py-3 text-sm">{user.email}</td>
                             <td className="py-3 text-sm">{user.phone || 'N/A'}</td>
+                            <td className="py-3 text-sm font-mono text-accent">{user.referral_code}</td>
                             <td className="py-3 text-sm text-secondary-foreground">
-                              {new Date(user.created_at).toLocaleDateString()}
+                              {format(new Date(user.created_at), 'MMM d, yyyy')}
                             </td>
                             <td className="py-3">
                               <PremiumButton variant="outline" size="sm">
@@ -521,16 +683,40 @@ export default function Admin() {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle>Referral Activity</CardTitle>
-                      <CardDescription>Track referral conversions and rewards</CardDescription>
+                      <CardTitle>Referral Analytics</CardTitle>
+                      <CardDescription>Track referral performance and conversions</CardDescription>
                     </div>
-                    <PremiumButton variant="outline" onClick={() => exportData('referrals')}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </PremiumButton>
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-secondary-foreground">
+                        Conversion Rate: {stats.conversionRate.toFixed(1)}%
+                      </div>
+                      <PremiumButton variant="outline" size="sm" onClick={() => exportData('referrals')}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </PremiumButton>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-primary">{stats.totalReferrals}</div>
+                      <div className="text-sm text-secondary-foreground">Total Referrals</div>
+                    </div>
+                    <div className="bg-success/10 border border-success/30 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-success">
+                        ${(stats.totalReferrals * 5).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-secondary-foreground">Free Value Generated</div>
+                    </div>
+                    <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-accent">
+                        {referrals.filter(r => r.status === 'completed').length}
+                      </div>
+                      <div className="text-sm text-secondary-foreground">Successful Conversions</div>
+                    </div>
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -540,17 +726,25 @@ export default function Admin() {
                           <th className="text-left py-3 text-sm font-medium">Code</th>
                           <th className="text-left py-3 text-sm font-medium">Status</th>
                           <th className="text-left py-3 text-sm font-medium">Date</th>
+                          <th className="text-left py-3 text-sm font-medium">Reward</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-accent/10">
                         {referrals.map((referral) => (
-                          <tr key={referral.id}>
+                          <tr key={referral.id} className="hover:bg-surface/30">
                             <td className="py-3 text-sm">{referral.referrer?.full_name || 'Unknown'}</td>
                             <td className="py-3 text-sm">{referral.referee?.full_name || 'Unknown'}</td>
-                            <td className="py-3 text-sm font-mono">{referral.referral_code}</td>
+                            <td className="py-3 text-sm font-mono text-accent">{referral.referral_code}</td>
                             <td className="py-3">{getStatusBadge(referral.status)}</td>
                             <td className="py-3 text-sm text-secondary-foreground">
-                              {new Date(referral.created_at).toLocaleDateString()}
+                              {format(new Date(referral.created_at), 'MMM d, yyyy')}
+                            </td>
+                            <td className="py-3 text-sm">
+                              {referral.reward_ticket_id ? (
+                                <CheckCircle className="w-4 h-4 text-success" />
+                              ) : (
+                                <Clock className="w-4 h-4 text-warning" />
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -567,12 +761,12 @@ export default function Admin() {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle>Draw History</CardTitle>
-                      <CardDescription>Past and upcoming draws</CardDescription>
+                      <CardTitle>Draw Management</CardTitle>
+                      <CardDescription>Past and upcoming draws with verification data</CardDescription>
                     </div>
-                    <PremiumButton variant="outline" onClick={() => exportData('draws')}>
+                    <PremiumButton variant="outline" size="sm" onClick={() => exportData('draws')}>
                       <Download className="w-4 h-4 mr-2" />
-                      Export
+                      Export Draws
                     </PremiumButton>
                   </div>
                 </CardHeader>
@@ -586,25 +780,27 @@ export default function Admin() {
                           <th className="text-left py-3 text-sm font-medium">Entries</th>
                           <th className="text-left py-3 text-sm font-medium">Winner</th>
                           <th className="text-left py-3 text-sm font-medium">Status</th>
-                          <th className="text-left py-3 text-sm font-medium">Actions</th>
+                          <th className="text-left py-3 text-sm font-medium">Verification</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-accent/10">
                         {draws.map((draw) => (
-                          <tr key={draw.id}>
+                          <tr key={draw.id} className="hover:bg-surface/30">
                             <td className="py-3 text-sm font-semibold">${draw.draw_type}</td>
                             <td className="py-3 text-sm">
-                              {new Date(draw.draw_date).toLocaleDateString()}
+                              {format(new Date(draw.draw_date), 'MMM d, yyyy')}
                             </td>
-                            <td className="py-3 text-sm">{draw.total_entries}</td>
+                            <td className="py-3 text-sm">{draw.total_entries.toLocaleString()}</td>
                             <td className="py-3 text-sm">
                               {draw.winner?.full_name || 'TBD'}
                             </td>
                             <td className="py-3">{getStatusBadge(draw.status)}</td>
                             <td className="py-3">
-                              <PremiumButton variant="outline" size="sm">
-                                <Trophy className="w-4 h-4" />
-                              </PremiumButton>
+                              {draw.participants_hash ? (
+                                <CheckCircle className="w-4 h-4 text-success" />
+                              ) : (
+                                <AlertTriangle className="w-4 h-4 text-warning" />
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -617,80 +813,81 @@ export default function Admin() {
 
             {/* Revenue Tab */}
             <TabsContent value="revenue">
-              <Card className="glass">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Revenue Analytics</CardTitle>
-                      <CardDescription>Daily revenue breakdown and trends</CardDescription>
-                    </div>
-                    <PremiumButton variant="outline" onClick={() => exportData('daily_revenue')}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </PremiumButton>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div className="glass p-4 rounded-lg">
-                      <div className="text-sm text-secondary-foreground mb-1">$3 Tickets</div>
-                      <div className="text-2xl font-bold text-primary">{stats.ticket3Count}</div>
-                      <div className="text-sm text-secondary-foreground">
-                        ${(stats.ticket3Count * 3).toLocaleString()} revenue
+              <div className="space-y-6">
+                <Card className="glass">
+                  <CardHeader>
+                    <CardTitle>Revenue Breakdown</CardTitle>
+                    <CardDescription>Detailed financial analytics and trends</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-4 gap-6 mb-8">
+                      <div className="glass p-4 rounded-lg text-center">
+                        <div className="text-sm text-secondary-foreground mb-1">$3 Tickets</div>
+                        <div className="text-2xl font-bold text-primary">{stats.ticket3Count}</div>
+                        <div className="text-sm text-secondary-foreground">
+                          ${(stats.ticket3Count * 3).toLocaleString()} revenue
+                        </div>
+                      </div>
+                      <div className="glass p-4 rounded-lg text-center">
+                        <div className="text-sm text-secondary-foreground mb-1">$5 Tickets</div>
+                        <div className="text-2xl font-bold text-success">{stats.ticket5Count}</div>
+                        <div className="text-sm text-secondary-foreground">
+                          ${(stats.ticket5Count * 5).toLocaleString()} revenue
+                        </div>
+                      </div>
+                      <div className="glass p-4 rounded-lg text-center">
+                        <div className="text-sm text-secondary-foreground mb-1">Free Tickets</div>
+                        <div className="text-2xl font-bold text-accent">{stats.freeTickets}</div>
+                        <div className="text-sm text-secondary-foreground">
+                          Quiz + Referrals
+                        </div>
+                      </div>
+                      <div className="glass p-4 rounded-lg text-center">
+                        <div className="text-sm text-secondary-foreground mb-1">Avg Ticket</div>
+                        <div className="text-2xl font-bold text-warning">${stats.avgTicketValue.toFixed(2)}</div>
+                        <div className="text-sm text-secondary-foreground">
+                          Per purchase
+                        </div>
                       </div>
                     </div>
-                    <div className="glass p-4 rounded-lg">
-                      <div className="text-sm text-secondary-foreground mb-1">$5 Tickets</div>
-                      <div className="text-2xl font-bold text-primary">{stats.ticket5Count}</div>
-                      <div className="text-sm text-secondary-foreground">
-                        ${(stats.ticket5Count * 5).toLocaleString()} revenue
-                      </div>
-                    </div>
-                    <div className="glass p-4 rounded-lg">
-                      <div className="text-sm text-secondary-foreground mb-1">Free Tickets</div>
-                      <div className="text-2xl font-bold text-success">{stats.freeTickets}</div>
-                      <div className="text-sm text-secondary-foreground">
-                        Quiz + Referrals
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-accent/20">
-                          <th className="text-left py-3 text-sm font-medium">Date</th>
-                          <th className="text-left py-3 text-sm font-medium">$3 Tickets</th>
-                          <th className="text-left py-3 text-sm font-medium">$5 Tickets</th>
-                          <th className="text-left py-3 text-sm font-medium">$3 Revenue</th>
-                          <th className="text-left py-3 text-sm font-medium">$5 Revenue</th>
-                          <th className="text-left py-3 text-sm font-medium">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-accent/10">
-                        {revenueData.map((revenue) => (
-                          <tr key={revenue.id}>
-                            <td className="py-3 text-sm">
-                              {new Date(revenue.date).toLocaleDateString()}
-                            </td>
-                            <td className="py-3 text-sm">{revenue.ticket_3_count}</td>
-                            <td className="py-3 text-sm">{revenue.ticket_5_count}</td>
-                            <td className="py-3 text-sm font-semibold">
-                              ${revenue.ticket_3_revenue.toLocaleString()}
-                            </td>
-                            <td className="py-3 text-sm font-semibold">
-                              ${revenue.ticket_5_revenue.toLocaleString()}
-                            </td>
-                            <td className="py-3 text-sm font-bold text-primary">
-                              ${revenue.total_revenue.toLocaleString()}
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-accent/20">
+                            <th className="text-left py-3 text-sm font-medium">Date</th>
+                            <th className="text-left py-3 text-sm font-medium">$3 Count</th>
+                            <th className="text-left py-3 text-sm font-medium">$5 Count</th>
+                            <th className="text-left py-3 text-sm font-medium">$3 Revenue</th>
+                            <th className="text-left py-3 text-sm font-medium">$5 Revenue</th>
+                            <th className="text-left py-3 text-sm font-medium">Total</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                        </thead>
+                        <tbody className="divide-y divide-accent/10">
+                          {revenueData.map((revenue) => (
+                            <tr key={revenue.date} className="hover:bg-surface/30">
+                              <td className="py-3 text-sm">
+                                {format(new Date(revenue.date), 'MMM d, yyyy')}
+                              </td>
+                              <td className="py-3 text-sm">{revenue.ticket_3_count}</td>
+                              <td className="py-3 text-sm">{revenue.ticket_5_count}</td>
+                              <td className="py-3 text-sm font-semibold">
+                                ${revenue.ticket_3_revenue.toLocaleString()}
+                              </td>
+                              <td className="py-3 text-sm font-semibold">
+                                ${revenue.ticket_5_revenue.toLocaleString()}
+                              </td>
+                              <td className="py-3 text-sm font-bold text-primary">
+                                ${revenue.total_revenue.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

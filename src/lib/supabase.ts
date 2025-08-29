@@ -12,6 +12,7 @@ export interface User {
   full_name: string
   phone?: string
   address?: string
+  referral_code: string
   created_at: string
   updated_at: string
 }
@@ -70,5 +71,35 @@ export interface Revenue {
   ticket_3_revenue: number
   ticket_5_revenue: number
   total_revenue: number
+  created_at: string
+}
+
+export interface QuizAttempt {
+  id: string
+  user_id: string
+  questions_answered: number
+  correct_answers: number
+  passed: boolean
+  ticket_awarded?: string
+  created_at: string
+}
+
+export interface AdminUser {
+  id: string
+  user_id: string
+  role: 'admin' | 'super_admin'
+  permissions: string[]
+  created_at: string
+}
+
+export interface CharityPartner {
+  id: string
+  name: string
+  description: string
+  logo_url: string
+  website: string
+  partnership_start: string
+  total_donated: number
+  focus_area: string
   created_at: string
 }
