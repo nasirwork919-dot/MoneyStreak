@@ -710,7 +710,7 @@ export default function Quiz() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </section>
       </main>
 
