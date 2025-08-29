@@ -575,142 +575,142 @@ export default function Quiz() {
             </div>
           </div>
         </main>
-        
-        <Footer />
-      </div>
-    );
-  }
+      </main>
 
-  // Active quiz
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="pt-24">
-        <section className="pb-24">
-          <div className="container-premium">
-            <div className="max-w-3xl mx-auto">
-              {/* Progress Header */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <span className="text-sm text-secondary-foreground">
-                      Expert Challenge Progress
+      <Footer />
+    </div>
+  );
+}
+
+// Active quiz
+return (
+  <div className="min-h-screen bg-background">
+    <Header />
+    
+    <main className="pt-24">
+      <section className="pb-24">
+        <div className="container-premium">
+          <div className="max-w-3xl mx-auto">
+            {/* Progress Header */}
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <span className="text-sm text-secondary-foreground">
+                    Expert Challenge Progress
+                  </span>
+                  <div className="text-lg font-semibold">
+                    Question {currentQuestion + 1} of {expertQuestions.length}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Clock className="w-5 h-5 text-warning" />
+                    <span className={`text-2xl font-bold ${timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-warning'}`}>
+                      {timeLeft}s
                     </span>
-                    <div className="text-lg font-semibold">
-                      Question {currentQuestion + 1} of {expertQuestions.length}
-                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <Clock className="w-5 h-5 text-warning" />
-                      <span className={`text-2xl font-bold ${timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-warning'}`}>
-                        {timeLeft}s
-                      </span>
-                    </div>
-                    <div className="text-xs text-secondary-foreground">Time remaining</div>
-                  </div>
-                </div>
-                
-                {/* Progress Bars */}
-                <div className="space-y-2">
-                  <div className="w-full bg-surface/50 rounded-full h-3">
-                    <div 
-                      className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-300"
-                      style={{ width: `${((currentQuestion + 1) / expertQuestions.length) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="w-full bg-surface/50 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-1000 ${
-                        timeLeft <= 10 ? 'bg-destructive' : timeLeft <= 20 ? 'bg-warning' : 'bg-success'
-                      }`}
-                      style={{ width: `${(timeLeft / 40) * 100}%` }}
-                    ></div>
-                  </div>
+                  <div className="text-xs text-secondary-foreground">Time remaining</div>
                 </div>
               </div>
-
-              {/* Question Card */}
-              <div className="glass rounded-lg p-8 mb-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-primary/20 px-3 py-1 rounded-full text-sm text-primary font-medium">
-                      {expertQuestions[currentQuestion].difficulty}
-                    </div>
-                    <div className="bg-destructive/20 px-3 py-1 rounded-full text-sm text-destructive font-medium">
-                      Expert Level
-                    </div>
-                  </div>
-                  <div className="text-sm text-accent font-medium">
-                    Worth: $5 Free Ticket
-                  </div>
+              
+              {/* Progress Bars */}
+              <div className="space-y-2">
+                <div className="w-full bg-surface/50 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentQuestion + 1) / expertQuestions.length) * 100}%` }}
+                  ></div>
                 </div>
-                
-                <h3 className="text-xl md:text-2xl font-display font-semibold mb-8 text-center leading-relaxed">
-                  {expertQuestions[currentQuestion].question}
-                </h3>
-
-                <div className="space-y-4">
-                  {expertQuestions[currentQuestion].options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
-                      disabled={timeLeft === 0}
-                      className={`w-full p-6 text-left rounded-lg border-2 transition-all duration-200 ${
-                        selectedAnswers[currentQuestion] === index
-                          ? 'border-primary bg-primary/20 text-primary shadow-lg'
-                          : 'border-accent/30 hover:border-accent/60 hover:bg-accent/10'
-                      } ${timeLeft === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}`}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold ${
-                          selectedAnswers[currentQuestion] === index
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-accent/50 text-accent'
-                        }`}>
-                          {String.fromCharCode(65 + index)}
-                        </div>
-                        <span className="text-lg">{option}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-secondary-foreground">
-                  {selectedAnswers.filter(a => a !== undefined).length} of {expertQuestions.length} answered
-                </div>
-                
-                <PremiumButton
-                  variant="gold"
-                  size="lg"
-                  onClick={handleNext}
-                  disabled={selectedAnswers[currentQuestion] === undefined || timeLeft === 0}
-                >
-                  {currentQuestion === expertQuestions.length - 1 ? 'Submit Challenge' : 'Next Question'}
-                </PremiumButton>
-              </div>
-
-              {/* Warning */}
-              <div className="mt-8 p-6 glass rounded-lg border border-warning/30">
-                <div className="flex items-start space-x-4">
-                  <AlertTriangle className="w-6 h-6 text-warning flex-shrink-0 mt-1" />
-                  <div className="text-sm text-secondary-foreground">
-                    <p className="font-medium text-warning mb-2">Critical Rules:</p>
-                    <ul className="space-y-1">
-                      <li>• You cannot return to previous questions</li>
-                      <li>• Timer will auto-advance if no answer is selected</li>
-                      <li>• All 10 answers must be correct to earn the free ticket</li>
-                      <li>• Only one attempt allowed per 24-hour period</li>
-                    </ul>
-                  </div>
+                <div className="w-full bg-surface/50 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      timeLeft <= 10 ? 'bg-destructive' : timeLeft <= 20 ? 'bg-warning' : 'bg-success'
+                    }`}
+                    style={{ width: `${(timeLeft / 40) * 100}%` }}
+                  ></div>
                 </div>
               </div>
             </div>
-          </section>
+
+            {/* Question Card */}
+            <div className="glass rounded-lg p-8 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-primary/20 px-3 py-1 rounded-full text-sm text-primary font-medium">
+                    {expertQuestions[currentQuestion].difficulty}
+                  </div>
+                  <div className="bg-destructive/20 px-3 py-1 rounded-full text-sm text-destructive font-medium">
+                    Expert Level
+                  </div>
+                </div>
+                <div className="text-sm text-accent font-medium">
+                  Worth: $5 Free Ticket
+                </div>
+              </div>
+              
+              <h3 className="text-xl md:text-2xl font-display font-semibold mb-8 text-center leading-relaxed">
+                {expertQuestions[currentQuestion].question}
+              </h3>
+
+              <div className="space-y-4">
+                {expertQuestions[currentQuestion].options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswerSelect(index)}
+                    disabled={timeLeft === 0}
+                    className={`w-full p-6 text-left rounded-lg border-2 transition-all duration-200 ${
+                      selectedAnswers[currentQuestion] === index
+                        ? 'border-primary bg-primary/20 text-primary shadow-lg'
+                        : 'border-accent/30 hover:border-accent/60 hover:bg-accent/10'
+                    } ${timeLeft === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}`}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold ${
+                        selectedAnswers[currentQuestion] === index
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-accent/50 text-accent'
+                      }`}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <span className="text-lg">{option}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-secondary-foreground">
+                {selectedAnswers.filter(a => a !== undefined).length} of {expertQuestions.length} answered
+              </div>
+              
+              <PremiumButton
+                variant="gold"
+                size="lg"
+                onClick={handleNext}
+                disabled={selectedAnswers[currentQuestion] === undefined || timeLeft === 0}
+              >
+                {currentQuestion === expertQuestions.length - 1 ? 'Submit Challenge' : 'Next Question'}
+              </PremiumButton>
+            </div>
+
+            {/* Warning */}
+            <div className="mt-8 p-6 glass rounded-lg border border-warning/30">
+              <div className="flex items-start space-x-4">
+                <AlertTriangle className="w-6 h-6 text-warning flex-shrink-0 mt-1" />
+                <div className="text-sm text-secondary-foreground">
+                  <p className="font-medium text-warning mb-2">Critical Rules:</p>
+                  <ul className="space-y-1">
+                    <li>• You cannot return to previous questions</li>
+                    <li>• Timer will auto-advance if no answer is selected</li>
+                    <li>• All 10 answers must be correct to earn the free ticket</li>
+                    <li>• Only one attempt allowed per 24-hour period</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
 
