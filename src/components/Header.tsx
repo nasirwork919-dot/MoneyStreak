@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import { PremiumButton } from "./ui/premium-button";
 import { AuthModal } from "./AuthModal";
 import { useAuth } from "@/lib/auth";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -57,16 +56,16 @@ export function Header() {
         <nav className="container-premium">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2" onClick={() => window.scrollTo(0, 0)}>
+            <RouterLink to="/" className="flex items-center space-x-2" onClick={() => window.scrollTo(0, 0)}>
               <div className="text-2xl font-display font-bold text-gradient-gold">
                 BigMoney
               </div>
-            </Link>
+            </RouterLink>
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-8">
               {navigation.map((item) => (
-                <Link
+                <RouterLink
                   key={item.name}
                   to={item.href}
                   onClick={() => window.scrollTo(0, 0)}
@@ -81,7 +80,7 @@ export function Header() {
                   {location.pathname === item.href && (
                     <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full" />
                   )}
-                </Link>
+                </RouterLink>
               ))}
             </div>
 
@@ -90,19 +89,19 @@ export function Header() {
               {user ? (
                 <div className="flex items-center space-x-3">
                   {isAdmin && (
-                    <Link to="/admin" onClick={() => window.scrollTo(0, 0)}>
+                    <RouterLink to="/admin" onClick={() => window.scrollTo(0, 0)}>
                       <PremiumButton variant="outline" size="sm">
-                        <Shield className="w-4 h-4 mr-2" />
+                        <User className="w-4 h-4 mr-2" />
                         Admin
                       </PremiumButton>
-                    </Link>
+                    </RouterLink>
                   )}
-                  <Link to="/dashboard" onClick={() => window.scrollTo(0, 0)}>
+                  <RouterLink to="/dashboard" onClick={() => window.scrollTo(0, 0)}>
                     <PremiumButton variant="glass" size="sm">
                       <User className="w-4 h-4 mr-2" />
                       Dashboard
                     </PremiumButton>
-                  </Link>
+                  </RouterLink>
                   <PremiumButton variant="outline" size="sm" onClick={handleSignOut}>
                     Sign Out
                   </PremiumButton>
@@ -138,7 +137,7 @@ export function Header() {
             <div className="lg:hidden glass border-t border-accent/20 mt-4 rounded-lg p-4 animate-fade-in">
               <div className="space-y-4">
                 {navigation.map((item) => (
-                  <Link
+                  <RouterLink
                     key={item.name}
                     to={item.href}
                     className={cn(
@@ -153,24 +152,24 @@ export function Header() {
                     }}
                   >
                     {item.name}
-                  </Link>
+                  </RouterLink>
                 ))}
                 
                 <div className="pt-4 border-t border-accent/20 space-y-3">
                   {user ? (
                     <>
                       {isAdmin && (
-                        <Link to="/admin" onClick={() => {
+                        <RouterLink to="/admin" onClick={() => {
                           setIsMobileMenuOpen(false);
                           window.scrollTo(0, 0);
                         }}>
                           <PremiumButton variant="outline" className="w-full">
-                            <Shield className="w-4 h-4 mr-2" />
+                            <User className="w-4 h-4 mr-2" />
                             Admin Panel
                           </PremiumButton>
-                        </Link>
+                        </RouterLink>
                       )}
-                      <Link to="/dashboard" onClick={() => {
+                      <RouterLink to="/dashboard" onClick={() => {
                         setIsMobileMenuOpen(false);
                         window.scrollTo(0, 0);
                       }}>
@@ -178,7 +177,7 @@ export function Header() {
                           <User className="w-4 h-4 mr-2" />
                           Dashboard
                         </PremiumButton>
-                      </Link>
+                      </RouterLink>
                       <PremiumButton variant="outline" className="w-full" onClick={handleSignOut}>
                         Sign Out
                       </PremiumButton>
