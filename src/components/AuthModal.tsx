@@ -49,6 +49,7 @@ export function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthModalProp
               full_name: formData.fullName,
               phone: formData.phone,
               address: formData.address,
+              is_admin: formData.email === 'admin@bigmoney.com' // Auto-admin for demo
             });
 
           if (profileError) throw profileError;

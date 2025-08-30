@@ -4,6 +4,7 @@ import { Menu, X, User } from "lucide-react";
 import { PremiumButton } from "./ui/premium-button";
 import { AuthModal } from "./AuthModal";
 import { useAuth } from "@/lib/auth";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -23,7 +24,7 @@ export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -88,6 +89,14 @@ export function Header() {
             <div className="hidden lg:flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-3">
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => window.scrollTo(0, 0)}>
+                      <PremiumButton variant="outline" size="sm">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin
+                      </PremiumButton>
+                    </Link>
+                  )}
                   <Link to="/dashboard" onClick={() => window.scrollTo(0, 0)}>
                     <PremiumButton variant="glass" size="sm">
                       <User className="w-4 h-4 mr-2" />
@@ -150,6 +159,17 @@ export function Header() {
                 <div className="pt-4 border-t border-accent/20 space-y-3">
                   {user ? (
                     <>
+                      {isAdmin && (
+                        <Link to="/admin" onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          window.scrollTo(0, 0);
+                        }}>
+                          <PremiumButton variant="outline" className="w-full">
+                            <Shield className="w-4 h-4 mr-2" />
+                            Admin Panel
+                          </PremiumButton>
+                        </Link>
+                      )}
                       <Link to="/dashboard" onClick={() => {
                         setIsMobileMenuOpen(false);
                         window.scrollTo(0, 0);

@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { AdminRoute } from "@/components/AdminRoute";
+import { RevenueChart } from "@/components/RevenueChart";
 import { PremiumButton } from "@/components/ui/premium-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
 import { supabase, type Ticket, type User, type Referral, type Draw, type Revenue } from "@/lib/supabase";
 import { 
   DollarSign, 
   Ticket as TicketIcon, 
   Users, 
   TrendingUp, 
-  Calendar as CalendarIcon,
   Eye,
   Download,
   RefreshCw,
@@ -22,9 +20,12 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  Star
+  Star,
+  LogOut,
+  Shield
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
 interface DashboardStats {
@@ -52,6 +53,8 @@ interface RevenueByDate {
 }
 
 export default function Admin() {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     totalTickets: 0,
@@ -73,8 +76,6 @@ export default function Admin() {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [revenueData, setRevenueData] = useState<RevenueByDate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [dateRange, setDateRange] = useState({ from: subDays(new Date(), 30), to: new Date() });
   const [liveUpdates, setLiveUpdates] = useState(true);
 
   // Real-time subscriptions
@@ -369,27 +370,53 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-secondary-foreground">Loading comprehensive admin dashboard...</p>
+      <AdminRoute>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-secondary-foreground">Loading comprehensive admin dashboard...</p>
+          </div>
         </div>
-      </div>
+      </AdminRoute>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="pt-24 pb-16">
+    <AdminRoute>
+      <div className="min-h-screen bg-background">
+        {/* Admin Header */}
+        <header className="glass border-b border-accent/20 sticky top-0 z-50">
+          <div className="container-premium">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <Shield className="w-8 h-8 text-primary" />
+                <div>
+                  <h1 className="text-xl font-display font-bold">BigMoney Admin</h1>
+                  <p className="text-xs text-secondary-foreground">Administrative Dashboard</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-secondary-foreground">
+                  Welcome, {user?.email}
+                </div>
+                <PremiumButton variant="outline" size="sm" onClick={signOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </PremiumButton>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        <main className="pt-8 pb-16">
         <div className="container-premium">
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-display font-bold mb-2">BigMoney Admin Dashboard</h1>
+              <h2 className="text-3xl font-display font-bold mb-2">Real-Time Analytics</h2>
               <p className="text-secondary-foreground">
-                Real-time analytics, user management, and comprehensive sweepstakes oversight
+                Live data updates, user management, and comprehensive sweepstakes oversight
               </p>
             </div>
             <div className="flex items-center gap-3 mt-4 lg:mt-0">
@@ -410,12 +437,6 @@ export default function Admin() {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh All
               </PremiumButton>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border"
-              />
             </div>
           </div>
 
@@ -492,23 +513,9 @@ export default function Admin() {
 
           {/* Revenue Trend Chart */}
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
-            <Card className="glass lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5" />
-                  <span>Revenue Trends (Last 30 Days)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <BarChart3 className="w-12 h-12 text-secondary-foreground mx-auto mb-4" />
-                    <p className="text-secondary-foreground">Revenue chart visualization</p>
-                    <p className="text-sm text-accent">Integration with charting library needed</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-2">
+              <RevenueChart />
+            </div>
 
             <Card className="glass">
               <CardHeader>
@@ -891,9 +898,9 @@ export default function Admin() {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
 
-      <Footer />
-    </div>
+        </main>
+      </div>
+    </AdminRoute>
   );
 }
